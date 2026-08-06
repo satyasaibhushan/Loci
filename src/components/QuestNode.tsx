@@ -4,18 +4,20 @@ import type { QuestDefinition } from '../types'
 export function QuestNode({ quest, status }: { quest: QuestDefinition; status: 'complete' | 'current' | 'locked' }) {
   const content = (
     <>
-      <span className="node-icon" aria-hidden="true">{status === 'complete' ? '✓' : status === 'locked' ? '·' : quest.icon}</span>
-      <span className="node-copy">
+      <span className="quest-orb" aria-hidden="true">
+        <span>{status === 'complete' ? '✓' : status === 'locked' ? '◆' : quest.icon}</span>
+      </span>
+      <span className="quest-plaque">
         <small>{quest.eyebrow}</small>
         <b>{quest.title}</b>
-        <span>{quest.description}</span>
+        <span className="quest-detail">{quest.description}</span>
+        <span className="quest-reward">{status === 'complete' ? 'Mastered' : status === 'locked' ? 'Locked' : `Play · +${quest.xp} XP`}</span>
       </span>
-      <span className="node-xp">+{quest.xp} XP</span>
     </>
   )
   return status === 'locked' ? (
-    <div className={`quest-node ${status}`} aria-disabled="true">{content}</div>
+    <div className={`world-quest ${quest.campaign} ${status}`} aria-disabled="true">{content}</div>
   ) : (
-    <Link className={`quest-node ${status}`} to={quest.path}>{content}</Link>
+    <Link className={`world-quest ${quest.campaign} ${status}`} to={quest.path} aria-label={`${quest.title}, ${status === 'complete' ? 'completed' : 'current quest'}`}>{content}</Link>
   )
 }

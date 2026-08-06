@@ -50,7 +50,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     let unsubscribe: (() => void) | undefined
     void Promise.all([getFirebaseServices(), import('firebase/auth')]).then(([{ auth }, authModule]) => {
-      void authModule.getRedirectResult(auth).catch(() => undefined)
       unsubscribe = authModule.onAuthStateChanged(auth, (firebaseUser) => {
         setUser(firebaseUser ? toAppUser(firebaseUser) : null)
         setLoading(false)
@@ -69,11 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const [{ auth }, authModule] = await Promise.all([getFirebaseServices(), import('firebase/auth')])
       const provider = new authModule.GoogleAuthProvider()
       provider.setCustomParameters({ prompt: 'select_account' })
-      if (window.matchMedia('(max-width: 700px)').matches) {
-        await authModule.signInWithRedirect(auth, provider)
-      } else {
-        await authModule.signInWithPopup(auth, provider)
-      }
+      await authModule.signInWithPopup(auth, provider)
     } catch (signInError) {
       setError(signInError instanceof Error ? signInError.message : 'Google sign-in could not be completed.')
     }
