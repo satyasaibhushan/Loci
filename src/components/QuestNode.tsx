@@ -2,6 +2,7 @@ import { Link } from '../lib/router'
 import type { QuestDefinition } from '../types'
 
 export function QuestNode({ quest, status }: { quest: QuestDefinition; status: 'complete' | 'current' | 'locked' }) {
+  const statusLabel = status === 'complete' ? 'completed' : status === 'current' ? 'current quest' : 'future quest'
   const content = (
     <>
       <span className="quest-orb" aria-hidden="true">
@@ -15,9 +16,5 @@ export function QuestNode({ quest, status }: { quest: QuestDefinition; status: '
       </span>
     </>
   )
-  return status === 'locked' ? (
-    <div className={`world-quest ${quest.campaign} ${status}`} aria-disabled="true">{content}</div>
-  ) : (
-    <Link className={`world-quest ${quest.campaign} ${status}`} to={quest.path} aria-label={`${quest.title}, ${status === 'complete' ? 'completed' : 'current quest'}`}>{content}</Link>
-  )
+  return <Link className={`world-quest ${quest.campaign} ${status}`} to={quest.path} aria-label={`${quest.title}, ${statusLabel}`}>{content}</Link>
 }
