@@ -266,20 +266,46 @@ a.world-quest:hover .quest-detail { display: block; }
 .search-field { display: flex; align-items: center; gap: 10px; width: min(520px, 60%); min-height: 44px; padding: 0 13px; border: 1px solid var(--line); background: rgba(255,255,255,.3); }
 .search-field input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: .72rem; }
 .toolbar-actions { display: flex; gap: 8px; }
-.codex-layout, .deck-codex-layout { display: grid; grid-template-columns: minmax(0, 1fr) 350px; gap: 26px; align-items: start; }
+.codex-layout, .deck-codex-layout { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 26px; align-items: start; }
 .number-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; }
 .number-grid button { position: relative; min-width: 0; min-height: 76px; padding: 10px 5px; overflow: hidden; border: 1px solid var(--line); background: rgba(255,255,255,.3); cursor: pointer; text-align: center; }
 .number-grid button:hover, .number-grid button.selected { border-color: var(--red); background: var(--paper-light); }
-.number-grid button.complete::after { content: ''; position: absolute; right: 5px; top: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
-.number-grid button.partial::after { content: ''; position: absolute; right: 5px; top: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
-.number-grid b { display: block; font: 600 1.1rem var(--display); }
-.number-grid span { display: block; margin-top: 5px; overflow: hidden; color: var(--ink-soft); font-size: .48rem; text-overflow: ellipsis; white-space: nowrap; }
-.codex-editor { position: sticky; top: 98px; padding: 25px; border: 1px solid var(--line-strong); background: var(--paper-light); box-shadow: 7px 8px 0 var(--paper-deep); }
+.number-grid button.complete::after { content: ''; position: absolute; z-index: 3; right: 5px; top: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+.number-grid button.partial::after { content: ''; position: absolute; z-index: 3; right: 5px; top: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
+.number-grid button > img { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: saturate(.82) contrast(.92); transition: transform .25s ease, filter .25s ease; }
+.number-grid button.has-image::before { content: ''; position: absolute; z-index: 1; inset: 0; background: linear-gradient(180deg, rgba(16,28,22,.08), rgba(16,28,22,.83)); }
+.number-grid button.has-image:hover > img, .number-grid button.has-image.selected > img { filter: saturate(1) contrast(1); transform: scale(1.07); }
+.number-grid b { position: relative; z-index: 2; display: block; font: 600 1.1rem var(--display); }
+.number-grid span { position: relative; z-index: 2; display: block; margin-top: 5px; overflow: hidden; color: var(--ink-soft); font-size: .48rem; text-overflow: ellipsis; white-space: nowrap; }
+.number-grid button.has-image b, .number-grid button.has-image span { color: #fff8e8; text-shadow: 0 1px 4px rgba(0,0,0,.7); }
+.codex-editor { position: sticky; top: 98px; max-height: calc(100vh - 118px); padding: 25px; overflow-y: auto; border: 1px solid var(--line-strong); background: var(--paper-light); box-shadow: 7px 8px 0 var(--paper-deep); scrollbar-color: var(--line-strong) transparent; scrollbar-width: thin; }
 .entry-heading { display: flex; align-items: center; gap: 15px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
 .entry-number { font: 600 3.7rem/1 var(--display); }
 .entry-heading span { display: block; color: var(--ink-soft); font-size: .5rem; text-transform: uppercase; letter-spacing: .1em; }
 .entry-heading b { font-size: .78rem; }
 .editor-intro { margin: 18px 0; color: var(--ink-soft); font-size: .65rem; line-height: 1.55; }
+.memory-portrait { position: relative; height: 230px; margin: 0 0 10px; overflow: hidden; border: 1px solid rgba(23,35,29,.56); background: radial-gradient(circle at 50% 38%, rgba(232,198,116,.16), transparent 33%), repeating-radial-gradient(circle at 50% 48%, transparent 0 26px, rgba(232,198,116,.045) 27px 28px), var(--ink); box-shadow: inset 0 0 0 6px rgba(242,236,217,.05); transition: border-color .2s ease, transform .2s ease; }
+.memory-portrait.dragging { border-color: var(--gold); transform: translateY(-2px); }
+.memory-portrait > img { width: 100%; height: 100%; object-fit: cover; animation: portrait-reveal .35s ease both; }
+@keyframes portrait-reveal { from { opacity: .2; transform: scale(1.04); } }
+.portrait-empty { display: flex; align-items: center; justify-content: center; flex-direction: column; width: 100%; height: 100%; padding: 28px; color: rgba(249,243,223,.72); border: 0; background: transparent; cursor: pointer; }
+.portrait-empty:hover { color: #fff8e8; background: rgba(232,198,116,.05); }
+.portrait-empty:disabled { cursor: wait; opacity: .55; }
+.portrait-glyph { display: grid; place-items: center; width: 54px; height: 54px; margin-bottom: 15px; color: var(--gold-light); border: 1px solid rgba(232,198,116,.4); border-radius: 50%; font-size: 1.35rem; }
+.portrait-empty b { font: 600 1.15rem var(--display); }
+.portrait-empty small { margin-top: 6px; color: rgba(249,243,223,.48); font-size: .52rem; letter-spacing: .06em; }
+.portrait-code { position: absolute; top: 10px; left: 10px; display: grid; place-items: center; width: 41px; height: 41px; color: var(--ink); border: 3px double rgba(23,35,29,.45); border-radius: 50%; background: var(--gold-light); box-shadow: 0 3px 12px rgba(0,0,0,.2); font: 700 1rem var(--display); }
+.portrait-caption { position: absolute; right: 0; bottom: 0; left: 0; padding: 27px 12px 9px; overflow: hidden; color: #fff8e8; background: linear-gradient(transparent, rgba(13,22,17,.88)); font-size: .48rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; text-overflow: ellipsis; white-space: nowrap; }
+.image-actions { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+.image-actions .quiet-button { padding: 8px 10px; font-size: .55rem; }
+.image-actions .text-button { padding: 5px 0; border: 0; background: transparent; cursor: pointer; font-size: .54rem; font-weight: 800; }
+.image-actions .danger-text { color: var(--red-dark); }
+.image-actions > span { margin-left: auto; color: var(--ink-soft); font-size: .47rem; }
+.image-actions button:disabled, .image-url-row button:disabled { cursor: wait; opacity: .48; }
+.image-url-row { display: grid; grid-template-columns: 1fr auto; margin-bottom: 14px; }
+.image-url-row input { min-width: 0; min-height: 37px; padding: 0 9px; border: 1px solid var(--line); border-right: 0; background: rgba(255,255,255,.28); font-size: .57rem; }
+.image-url-row button { padding: 0 10px; color: var(--paper-light); border: 1px solid var(--ink); background: var(--ink); cursor: pointer; font-size: .52rem; font-weight: 800; }
+.image-error { margin: -4px 0 13px; padding: 9px 10px; color: var(--red-dark); border-left: 3px solid var(--red); background: rgba(184,75,53,.08); font-size: .54rem; line-height: 1.45; }
 .codex-editor > label { display: flex; flex-direction: column; gap: 6px; margin-bottom: 13px; }
 .codex-editor label > span { display: flex; justify-content: space-between; color: var(--ink-soft); font-size: .58rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .codex-editor label i { display: grid; place-items: center; width: 20px; height: 20px; margin-top: -3px; color: var(--paper-light); border-radius: 50%; background: var(--ink); font: 600 .6rem var(--display); }
@@ -430,7 +456,7 @@ a.world-quest:hover .quest-detail { display: block; }
   .quest-deck-scenes { left: 68%; }
   .quest-deck-recall { left: 62%; }
   .number-grid { grid-template-columns: repeat(8, 1fr); }
-  .codex-layout, .deck-codex-layout { grid-template-columns: minmax(0, 1fr) 320px; }
+  .codex-layout, .deck-codex-layout { grid-template-columns: minmax(0, 1fr) 350px; }
   .suit-row { grid-template-columns: 55px 1fr; }
   .suit-row > div { grid-template-columns: repeat(7, 1fr); }
 }
@@ -507,7 +533,8 @@ a.world-quest:hover .quest-detail { display: block; }
   .lesson-footer { align-items: stretch; flex-direction: column; }
   .pao-answer-grid { grid-template-columns: 1fr; }
   .codex-layout, .deck-codex-layout { grid-template-columns: 1fr; }
-  .codex-editor { position: static; grid-row: 1; }
+  .codex-editor { position: static; grid-row: 1; max-height: none; overflow: visible; }
+  .memory-portrait { height: min(58vw, 360px); }
   .number-grid { grid-template-columns: repeat(5, 1fr); }
   .search-field { width: 100%; }
   .codex-toolbar { align-items: stretch; flex-direction: column; }

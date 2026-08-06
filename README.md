@@ -15,7 +15,7 @@ The user owns all imagery, narratives and memory palaces. Loci stores definition
 ## Stack
 
 - Vite, React and TypeScript
-- Firebase modular SDK for Google Authentication and Firestore
+- Firebase modular SDK for Google Authentication, Firestore and image storage
 - Local browser persistence for the no-configuration preview
 - Plain CSS and self-hosted variable font assets; no UI framework
 - Vitest for deterministic domain tests
@@ -45,8 +45,13 @@ npm run build
 1. Create a Firebase web project.
 2. Enable Google under **Authentication → Sign-in method**.
 3. Create a Firestore database.
-4. Copy `.env.example` to `.env.local` and fill in the Firebase web configuration.
-5. Deploy `firestore.rules`. It restricts each progress document to its authenticated owner.
+4. Enable **Storage** and choose a bucket location. Firebase requires the Blaze plan for Storage; small usage can still fall within its no-cost allowance, so set a budget alert.
+5. Copy `.env.example` to `.env.local` and fill in the Firebase web configuration.
+6. Deploy the Firestore and Storage rules. They restrict each progress document and image-management operation to its authenticated owner.
+
+```bash
+npx firebase-tools deploy --only firestore,storage --project YOUR_PROJECT_ID
+```
 
 The app uses these environment keys:
 
@@ -63,4 +68,4 @@ Firebase Hosting configuration and SPA rewrites are included in `firebase.json`.
 
 ## Data model
 
-Cloud progress is stored at `users/{uid}` as a single small document. The user can export or import the complete expedition as JSON from **Field notes**. The dedicated PAO codex also supports its own portable JSON export.
+Cloud progress is stored at `users/{uid}` as a single small document. Compressed PAO reference images are stored separately at `users/{uid}/pao/` in Firebase Storage; externally linked images remain at their original URL. The user can export or import the complete expedition as JSON from **Field notes**. The dedicated PAO codex also supports its own portable JSON export.

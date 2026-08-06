@@ -18,6 +18,8 @@ export interface PaoEntry {
   action: string
   object: string
   cue?: string
+  imageUrl?: string
+  imagePath?: string
 }
 
 export type Suit = 'S' | 'H' | 'D' | 'C'
