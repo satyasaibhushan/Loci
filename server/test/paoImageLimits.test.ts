@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hasStorageCapacity, isPaoCode, paoImageCustomId, permittedStorageBytes } from '../paoImageLimits'
+import { hasStorageCapacity, isOwnedPaoImageCustomId, isPaoCode, paoImageCustomId, permittedStorageBytes } from '../paoImageLimits'
 
 describe('PAO image storage limits', () => {
   it('accepts only two-digit PAO codes', () => {
@@ -9,8 +9,12 @@ describe('PAO image storage limits', () => {
     expect(isPaoCode('AA')).toBe(false)
   })
 
-  it('uses an authenticated user and number as the replacement key', () => {
+  it('creates legacy and unique identities scoped to a user and number', () => {
     expect(paoImageCustomId('user-123', '07')).toBe('loci-user-123-07')
+    expect(paoImageCustomId('user-123', '07', 'fresh')).toBe('loci-user-123-07-fresh')
+    expect(isOwnedPaoImageCustomId('loci-user-123-07-fresh', 'user-123', '07')).toBe(true)
+    expect(isOwnedPaoImageCustomId('loci-other-user-07-fresh', 'user-123', '07')).toBe(false)
+    expect(isOwnedPaoImageCustomId('loci-user-123-08-fresh', 'user-123', '07')).toBe(false)
   })
 
   it('reserves a quarter of provider capacity and caps Loci at 1.5 GB', () => {

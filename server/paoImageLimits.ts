@@ -6,8 +6,14 @@ export function isPaoCode(code: string): boolean {
   return /^\d{2}$/.test(code) && Number(code) <= 99
 }
 
-export function paoImageCustomId(uid: string, code: string): string {
-  return `loci-${uid}-${code}`
+export function paoImageCustomId(uid: string, code: string, nonce?: string): string {
+  const base = `loci-${uid}-${code}`
+  return nonce ? `${base}-${nonce}` : base
+}
+
+export function isOwnedPaoImageCustomId(customId: string, uid: string, code: string): boolean {
+  const base = paoImageCustomId(uid, code)
+  return customId === base || customId.startsWith(`${base}-`)
 }
 
 export function permittedStorageBytes(providerLimitBytes: number): number {

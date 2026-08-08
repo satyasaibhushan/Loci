@@ -61,7 +61,7 @@ export function PaoCodexPage() {
     setImageBusy(true)
     setImageError('')
     try {
-      const stored = await storePaoImage(user, selected, file)
+      const stored = await storePaoImage(user, selected, file, draft.imageCustomId)
       const { imagePath: _legacyImagePath, ...withoutLegacyImage } = draft
       const next = { ...withoutLegacyImage, ...stored }
       persistDraft(next, `Image attached to ${selected}`)
@@ -84,8 +84,8 @@ export function PaoCodexPage() {
     setImageBusy(true)
     setImageError('')
     try {
-      if (draft.imageProvider === 'uploadthing') await deletePaoImage(user, selected)
-      const { imagePath: _imagePath, imageProvider: _imageProvider, ...withoutStoredImage } = draft
+      if (draft.imageProvider === 'uploadthing') await deletePaoImage(user, selected, draft.imageCustomId)
+      const { imageCustomId: _imageCustomId, imagePath: _imagePath, imageProvider: _imageProvider, ...withoutStoredImage } = draft
       persistDraft({ ...withoutStoredImage, imageUrl, imageProvider: 'external' }, `Image link attached to ${selected}`)
       setImageUrlDraft('')
     } catch (error) {
@@ -100,8 +100,8 @@ export function PaoCodexPage() {
     setImageBusy(true)
     setImageError('')
     try {
-      if (draft.imageProvider === 'uploadthing') await deletePaoImage(user, selected)
-      const { imageUrl: _imageUrl, imagePath: _imagePath, imageProvider: _imageProvider, ...withoutImage } = draft
+      if (draft.imageProvider === 'uploadthing') await deletePaoImage(user, selected, draft.imageCustomId)
+      const { imageCustomId: _imageCustomId, imageUrl: _imageUrl, imagePath: _imagePath, imageProvider: _imageProvider, ...withoutImage } = draft
       persistDraft(withoutImage, `Image removed from ${selected}`)
     } catch (error) {
       setImageError(error instanceof Error ? error.message : 'The image could not be removed.')

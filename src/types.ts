@@ -20,6 +20,7 @@ export interface PaoEntry {
   cue?: string
   imageUrl?: string
   imageProvider?: 'uploadthing' | 'external'
+  imageCustomId?: string
   /** Legacy Firebase Storage path, retained so older saved progress still hydrates safely. */
   imagePath?: string
 }

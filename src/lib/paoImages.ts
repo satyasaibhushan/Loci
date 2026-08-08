@@ -11,6 +11,7 @@ const EDGE_STEPS = [800, 680, 560, 480, 400]
 export interface StoredPaoImage {
   imageUrl: string
   imageProvider: 'uploadthing'
+  imageCustomId?: string
 }
 
 export function imageDimensions(width: number, height: number, maxEdge = MAX_IMAGE_EDGE): { width: number; height: number } {
@@ -100,33 +101,36 @@ async function getAuthorizationHeader(): Promise<string> {
   return `Bearer ${await firebaseUser.getIdToken()}`
 }
 
-async function imageApiRequest(method: 'POST' | 'DELETE', code: string, image?: Blob): Promise<Response> {
+async function imageApiRequest(method: 'POST' | 'DELETE', code: string, image?: Blob, previousCustomId?: string): Promise<Response> {
   const headers = new Headers({ Authorization: await getAuthorizationHeader() })
   let body: FormData | undefined
   if (image) {
     body = new FormData()
     body.set('code', code)
     body.set('image', new File([image], `pao-${code}.webp`, { type: 'image/webp' }))
+    if (previousCustomId) body.set('previousCustomId', previousCustomId)
   }
-  const url = method === 'DELETE' ? `/api/pao-image?code=${encodeURIComponent(code)}` : '/api/pao-image'
+  const deleteParameters = new URLSearchParams({ code })
+  if (previousCustomId) deleteParameters.set('customId', previousCustomId)
+  const url = method === 'DELETE' ? `/api/pao-image?${deleteParameters}` : '/api/pao-image'
   return fetch(url, { method, headers, body })
 }
 
-export async function storePaoImage(user: AppUser, code: string, file: File): Promise<StoredPaoImage> {
+export async function storePaoImage(user: AppUser, code: string, file: File, previousCustomId?: string): Promise<StoredPaoImage> {
   const image = await compressPaoImage(file)
   if (user.isDemo || !isFirebaseConfigured) {
     return { imageUrl: await blobToDataUrl(image), imageProvider: 'uploadthing' }
   }
 
-  const response = await imageApiRequest('POST', code, image)
-  const result = await response.json() as { imageUrl?: string; error?: string }
+  const response = await imageApiRequest('POST', code, image, previousCustomId)
+  const result = await response.json() as { imageCustomId?: string; imageUrl?: string; error?: string }
   if (!response.ok || !result.imageUrl) throw new Error(result.error || 'The image could not be uploaded.')
-  return { imageUrl: result.imageUrl, imageProvider: 'uploadthing' }
+  return { imageUrl: result.imageUrl, imageProvider: 'uploadthing', imageCustomId: result.imageCustomId }
 }
 
-export async function deletePaoImage(user: AppUser, code: string): Promise<void> {
+export async function deletePaoImage(user: AppUser, code: string, imageCustomId?: string): Promise<void> {
   if (user.isDemo || !isFirebaseConfigured) return
-  const response = await imageApiRequest('DELETE', code)
+  const response = await imageApiRequest('DELETE', code, undefined, imageCustomId)
   if (response.ok || response.status === 404) return
   const result = await response.json() as { error?: string }
   throw new Error(result.error || 'The stored image could not be deleted.')

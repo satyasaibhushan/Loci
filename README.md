@@ -64,7 +64,7 @@ VITE_FIREBASE_APP_ID
 UPLOADTHING_TOKEN
 ```
 
-`UPLOADTHING_TOKEN` is server-only. Add it to Vercel as a secret for Production, Preview and Development; never prefix it with `VITE_` or expose it in client code. Signed-in image uploads are compressed below roughly 300 KB, rejected above 384 KB, limited to one current image per PAO number, and blocked once account usage reaches 75% of the provider quota or 1.5 GB—whichever comes first. With UploadThing's 2 GB free plan, this keeps at least 512 MB in reserve. Replacements delete the prior image before storing the new one.
+`UPLOADTHING_TOKEN` is server-only. Add it to Vercel as a secret for Production, Preview and Development; never prefix it with `VITE_` or expose it in client code. Signed-in image uploads are compressed below roughly 300 KB, rejected above 384 KB, limited to one current image per PAO number, and blocked once account usage reaches 75% of the provider quota or 1.5 GB—whichever comes first. With UploadThing's 2 GB free plan, this keeps at least 512 MB in reserve. Replacements receive a fresh file identity and are uploaded successfully before the prior image is deleted.
 
 Files on UploadThing's free plan are public through their generated URLs. Use reference art rather than sensitive personal photos.
 
