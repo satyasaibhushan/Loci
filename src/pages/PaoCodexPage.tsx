@@ -172,7 +172,10 @@ export function PaoCodexPage() {
             aria-label={`Visual anchor for ${selected}`}
           >
             {draft.imageUrl && !previewFailed ? (
-              <img src={draft.imageUrl} alt={draft.person ? `${draft.person}, visual anchor for ${selected}` : `Visual anchor for ${selected}`} onError={() => setPreviewFailed(true)} />
+              <>
+                <img className="portrait-backdrop" src={draft.imageUrl} alt="" aria-hidden="true" />
+                <img className="portrait-image" src={draft.imageUrl} alt={draft.person ? `${draft.person}, visual anchor for ${selected}` : `Visual anchor for ${selected}`} onError={() => setPreviewFailed(true)} />
+              </>
             ) : (
               <button type="button" className="portrait-empty" onClick={() => imageRef.current?.click()} disabled={imageBusy}>
                 <span className="portrait-glyph">◈</span>
