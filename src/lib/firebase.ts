@@ -1,13 +1,11 @@
 import type { FirebaseApp } from 'firebase/app'
 import type { Auth } from 'firebase/auth'
 import type { Firestore } from 'firebase/firestore/lite'
-import type { FirebaseStorage } from 'firebase/storage'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY as string | undefined,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string | undefined,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID as string | undefined,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET as string | undefined,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID as string | undefined,
   appId: import.meta.env.VITE_FIREBASE_APP_ID as string | undefined,
 }
@@ -18,7 +16,6 @@ export const isFirebaseConfigured = Boolean(
 
 interface FirebaseServices { app: FirebaseApp; auth: Auth; db: Firestore }
 let services: Promise<FirebaseServices> | undefined
-let storage: Promise<FirebaseStorage> | undefined
 
 export function getFirebaseServices(): Promise<FirebaseServices> {
   if (!isFirebaseConfigured) return Promise.reject(new Error('Firebase is not configured.'))
@@ -29,11 +26,4 @@ export function getFirebaseServices(): Promise<FirebaseServices> {
     })
   }
   return services
-}
-
-export function getFirebaseStorage(): Promise<FirebaseStorage> {
-  if (!storage) {
-    storage = Promise.all([getFirebaseServices(), import('firebase/storage')]).then(([{ app }, storageModule]) => storageModule.getStorage(app))
-  }
-  return storage
 }

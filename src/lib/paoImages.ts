@@ -1,13 +1,16 @@
-import { getFirebaseStorage, isFirebaseConfigured } from './firebase'
+import { getFirebaseServices, isFirebaseConfigured } from './firebase'
 import type { AppUser } from '../types'
 
 const MAX_SOURCE_BYTES = 12 * 1024 * 1024
-const MAX_IMAGE_EDGE = 900
-const OUTPUT_QUALITY = 0.82
+const MAX_IMAGE_EDGE = 800
+const TARGET_IMAGE_BYTES = 300 * 1024
+const MAX_STORED_IMAGE_BYTES = 384 * 1024
+const QUALITY_STEPS = [0.82, 0.72, 0.62, 0.52]
+const EDGE_STEPS = [800, 680, 560, 480, 400]
 
 export interface StoredPaoImage {
   imageUrl: string
-  imagePath?: string
+  imageProvider: 'uploadthing'
 }
 
 export function imageDimensions(width: number, height: number, maxEdge = MAX_IMAGE_EDGE): { width: number; height: number } {
@@ -43,22 +46,39 @@ async function loadImage(file: File): Promise<{ source: CanvasImageSource; width
   return { source: image, width: image.naturalWidth, height: image.naturalHeight, close: () => URL.revokeObjectURL(url) }
 }
 
+function canvasToWebp(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => canvas.toBlob(
+    (blob) => blob ? resolve(blob) : reject(new Error('This browser could not compress the image.')),
+    'image/webp',
+    quality,
+  ))
+}
+
 export async function compressPaoImage(file: File): Promise<Blob> {
   validateImageFile(file)
   const loaded = await loadImage(file)
   try {
-    const dimensions = imageDimensions(loaded.width, loaded.height)
     const canvas = document.createElement('canvas')
-    canvas.width = dimensions.width
-    canvas.height = dimensions.height
     const context = canvas.getContext('2d')
     if (!context) throw new Error('This browser cannot prepare the image.')
     context.imageSmoothingEnabled = true
     context.imageSmoothingQuality = 'high'
-    context.drawImage(loaded.source, 0, 0, dimensions.width, dimensions.height)
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', OUTPUT_QUALITY))
-    if (!blob) throw new Error('This browser could not compress the image.')
-    return blob
+
+    let smallest: Blob | undefined
+    for (const maxEdge of EDGE_STEPS) {
+      const dimensions = imageDimensions(loaded.width, loaded.height, maxEdge)
+      canvas.width = dimensions.width
+      canvas.height = dimensions.height
+      context.drawImage(loaded.source, 0, 0, dimensions.width, dimensions.height)
+
+      for (const quality of QUALITY_STEPS) {
+        const candidate = await canvasToWebp(canvas, quality)
+        if (!smallest || candidate.size < smallest.size) smallest = candidate
+        if (candidate.size <= TARGET_IMAGE_BYTES) return candidate
+      }
+    }
+    if (smallest && smallest.size <= MAX_STORED_IMAGE_BYTES) return smallest
+    throw new Error('This image remains too detailed after compression. Choose a simpler or smaller image.')
   } finally {
     loaded.close()
   }
@@ -73,23 +93,41 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   })
 }
 
-export async function storePaoImage(user: AppUser, code: string, file: File): Promise<StoredPaoImage> {
-  const image = await compressPaoImage(file)
-  if (user.isDemo || !isFirebaseConfigured) return { imageUrl: await blobToDataUrl(image) }
-
-  const [storage, storageModule] = await Promise.all([getFirebaseStorage(), import('firebase/storage')])
-  const imagePath = `users/${user.uid}/pao/${code}-${Date.now()}.webp`
-  const imageRef = storageModule.ref(storage, imagePath)
-  await storageModule.uploadBytes(imageRef, image, { contentType: 'image/webp', cacheControl: 'public,max-age=31536000,immutable' })
-  return { imageUrl: await storageModule.getDownloadURL(imageRef), imagePath }
+async function getAuthorizationHeader(): Promise<string> {
+  const { auth } = await getFirebaseServices()
+  const firebaseUser = auth.currentUser
+  if (!firebaseUser) throw new Error('Sign in again before uploading an image.')
+  return `Bearer ${await firebaseUser.getIdToken()}`
 }
 
-export async function deletePaoImage(user: AppUser, imagePath?: string): Promise<void> {
-  if (!imagePath || user.isDemo || !isFirebaseConfigured) return
-  const [storage, storageModule] = await Promise.all([getFirebaseStorage(), import('firebase/storage')])
-  try {
-    await storageModule.deleteObject(storageModule.ref(storage, imagePath))
-  } catch (error) {
-    if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 'storage/object-not-found') throw error
+async function imageApiRequest(method: 'POST' | 'DELETE', code: string, image?: Blob): Promise<Response> {
+  const headers = new Headers({ Authorization: await getAuthorizationHeader() })
+  let body: FormData | undefined
+  if (image) {
+    body = new FormData()
+    body.set('code', code)
+    body.set('image', new File([image], `pao-${code}.webp`, { type: 'image/webp' }))
   }
+  const url = method === 'DELETE' ? `/api/pao-image?code=${encodeURIComponent(code)}` : '/api/pao-image'
+  return fetch(url, { method, headers, body })
+}
+
+export async function storePaoImage(user: AppUser, code: string, file: File): Promise<StoredPaoImage> {
+  const image = await compressPaoImage(file)
+  if (user.isDemo || !isFirebaseConfigured) {
+    return { imageUrl: await blobToDataUrl(image), imageProvider: 'uploadthing' }
+  }
+
+  const response = await imageApiRequest('POST', code, image)
+  const result = await response.json() as { imageUrl?: string; error?: string }
+  if (!response.ok || !result.imageUrl) throw new Error(result.error || 'The image could not be uploaded.')
+  return { imageUrl: result.imageUrl, imageProvider: 'uploadthing' }
+}
+
+export async function deletePaoImage(user: AppUser, code: string): Promise<void> {
+  if (user.isDemo || !isFirebaseConfigured) return
+  const response = await imageApiRequest('DELETE', code)
+  if (response.ok || response.status === 404) return
+  const result = await response.json() as { error?: string }
+  throw new Error(result.error || 'The stored image could not be deleted.')
 }

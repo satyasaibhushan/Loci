@@ -3,7 +3,7 @@ import { imageDimensions, validateImageUrl } from '../lib/paoImages'
 
 describe('PAO image helpers', () => {
   it('scales large images without changing their aspect ratio', () => {
-    expect(imageDimensions(1800, 1200)).toEqual({ width: 900, height: 600 })
+    expect(imageDimensions(1600, 1200)).toEqual({ width: 800, height: 600 })
     expect(imageDimensions(400, 600)).toEqual({ width: 400, height: 600 })
   })
 

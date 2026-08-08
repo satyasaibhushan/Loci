@@ -62,33 +62,37 @@ export function PaoCodexPage() {
     setImageError('')
     try {
       const stored = await storePaoImage(user, selected, file)
-      const previousPath = draft.imagePath
-      const next = { ...draft, ...stored }
+      const { imagePath: _legacyImagePath, ...withoutLegacyImage } = draft
+      const next = { ...withoutLegacyImage, ...stored }
       persistDraft(next, `Image attached to ${selected}`)
-      if (previousPath && previousPath !== stored.imagePath) void deletePaoImage(user, previousPath).catch(() => undefined)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'The image could not be attached.'
-      setImageError(message.includes('storage/') || message.includes('403') || message.includes('402')
-        ? 'Firebase Storage is unavailable. Enable Storage on Blaze, or paste a direct image URL below.'
-        : message)
+      setImageError(message)
     } finally {
       setImageBusy(false)
       if (imageRef.current) imageRef.current.value = ''
     }
   }
 
-  const attachImageUrl = () => {
+  const attachImageUrl = async () => {
     const imageUrl = validateImageUrl(imageUrlDraft)
     if (!imageUrl) {
       setImageError('Paste a full http:// or https:// image address.')
       return
     }
-    const previousPath = draft.imagePath
-    const { imagePath: _imagePath, ...withoutStoredPath } = draft
-    persistDraft({ ...withoutStoredPath, imageUrl }, `Image link attached to ${selected}`)
-    setImageUrlDraft('')
+    if (!user || imageBusy) return
+    setImageBusy(true)
     setImageError('')
-    if (user && previousPath) void deletePaoImage(user, previousPath).catch(() => undefined)
+    try {
+      if (draft.imageProvider === 'uploadthing') await deletePaoImage(user, selected)
+      const { imagePath: _imagePath, imageProvider: _imageProvider, ...withoutStoredImage } = draft
+      persistDraft({ ...withoutStoredImage, imageUrl, imageProvider: 'external' }, `Image link attached to ${selected}`)
+      setImageUrlDraft('')
+    } catch (error) {
+      setImageError(error instanceof Error ? error.message : 'The image link could not be attached.')
+    } finally {
+      setImageBusy(false)
+    }
   }
 
   const removeImage = async () => {
@@ -96,8 +100,8 @@ export function PaoCodexPage() {
     setImageBusy(true)
     setImageError('')
     try {
-      await deletePaoImage(user, draft.imagePath)
-      const { imageUrl: _imageUrl, imagePath: _imagePath, ...withoutImage } = draft
+      if (draft.imageProvider === 'uploadthing') await deletePaoImage(user, selected)
+      const { imageUrl: _imageUrl, imagePath: _imagePath, imageProvider: _imageProvider, ...withoutImage } = draft
       persistDraft(withoutImage, `Image removed from ${selected}`)
     } catch (error) {
       setImageError(error instanceof Error ? error.message : 'The image could not be removed.')
@@ -185,8 +189,8 @@ export function PaoCodexPage() {
             <span>{imageBusy ? 'Preparing image…' : user?.isDemo ? 'Saved on this device' : 'Synced to your account'}</span>
           </div>
           <div className="image-url-row">
-            <input value={imageUrlDraft} onChange={(event) => setImageUrlDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); attachImageUrl() } }} placeholder="Or paste a direct image URL" aria-label="Direct image URL" />
-            <button type="button" onClick={attachImageUrl} disabled={!imageUrlDraft.trim()}>Attach</button>
+            <input value={imageUrlDraft} onChange={(event) => setImageUrlDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void attachImageUrl() } }} placeholder="Or paste a direct image URL" aria-label="Direct image URL" />
+            <button type="button" onClick={() => void attachImageUrl()} disabled={imageBusy || !imageUrlDraft.trim()}>Attach</button>
           </div>
           {imageError && <div className="image-error" role="alert">{imageError}</div>}
           <label><span>Person <i>P</i></span><input value={draft.person} onChange={(event) => setDraft({ ...draft, person: event.target.value })} placeholder="e.g. Thor" autoFocus /></label>

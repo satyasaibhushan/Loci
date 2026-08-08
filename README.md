@@ -15,12 +15,13 @@ The user owns all imagery, narratives and memory palaces. Loci stores definition
 ## Stack
 
 - Vite, React and TypeScript
-- Firebase modular SDK for Google Authentication, Firestore and image storage
+- Firebase modular SDK for Google Authentication and Firestore
+- UploadThing for authenticated, quota-limited PAO image storage
 - Local browser persistence for the no-configuration preview
 - Plain CSS and self-hosted variable font assets; no UI framework
 - Vitest for deterministic domain tests
 
-There is no custom backend. Firebase is loaded through its tree-shakeable modular API, and route content is entirely client-side.
+The application is primarily client-side. A single Vercel Function verifies Firebase ID tokens and manages PAO images through UploadThing without exposing its server token.
 
 ## Development
 
@@ -45,12 +46,11 @@ npm run build
 1. Create a Firebase web project.
 2. Enable Google under **Authentication → Sign-in method**.
 3. Create a Firestore database.
-4. Enable **Storage** and choose a bucket location. Firebase requires the Blaze plan for Storage; small usage can still fall within its no-cost allowance, so set a budget alert.
-5. Copy `.env.example` to `.env.local` and fill in the Firebase web configuration.
-6. Deploy the Firestore and Storage rules. They restrict each progress document and image-management operation to its authenticated owner.
+4. Copy `.env.example` to `.env.local` and fill in the Firebase web configuration.
+5. Deploy the Firestore rules. They restrict each progress document to its authenticated owner.
 
 ```bash
-npx firebase-tools deploy --only firestore,storage --project YOUR_PROJECT_ID
+npx firebase-tools deploy --only firestore --project YOUR_PROJECT_ID
 ```
 
 The app uses these environment keys:
@@ -59,13 +59,19 @@ The app uses these environment keys:
 VITE_FIREBASE_API_KEY
 VITE_FIREBASE_AUTH_DOMAIN
 VITE_FIREBASE_PROJECT_ID
-VITE_FIREBASE_STORAGE_BUCKET
 VITE_FIREBASE_MESSAGING_SENDER_ID
 VITE_FIREBASE_APP_ID
+UPLOADTHING_TOKEN
 ```
+
+`UPLOADTHING_TOKEN` is server-only. Add it to Vercel as a secret for Production, Preview and Development; never prefix it with `VITE_` or expose it in client code. Signed-in image uploads are compressed below roughly 300 KB, rejected above 384 KB, limited to one current image per PAO number, and blocked once account usage reaches 75% of the provider quota or 1.5 GB—whichever comes first. With UploadThing's 2 GB free plan, this keeps at least 512 MB in reserve. Replacements delete the prior image before storing the new one.
+
+Files on UploadThing's free plan are public through their generated URLs. Use reference art rather than sensitive personal photos.
+
+Use `vercel dev` when testing signed-in uploads locally. Plain `npm run dev` still supports the local demo but does not run the image API function.
 
 Firebase Hosting configuration and SPA rewrites are included in `firebase.json`. The application also works on any static host that rewrites unknown routes to `index.html`.
 
 ## Data model
 
-Cloud progress is stored at `users/{uid}` as a single small document. Compressed PAO reference images are stored separately at `users/{uid}/pao/` in Firebase Storage; externally linked images remain at their original URL. The user can export or import the complete expedition as JSON from **Field notes**. The dedicated PAO codex also supports its own portable JSON export.
+Cloud progress is stored at `users/{uid}` as a single small document. Compressed PAO reference images are stored in UploadThing while their URLs and provider markers live with the corresponding PAO entries; externally linked images remain at their original URL. The user can export or import the complete expedition as JSON from **Field notes**. The dedicated PAO codex also supports its own portable JSON export.
